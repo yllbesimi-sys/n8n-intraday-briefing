@@ -1,0 +1,5 @@
+# n8n run logs - created on every run, not part of the project
+logs/
+
+# Local secrets file - never commit (credentials live in n8n)
+.env

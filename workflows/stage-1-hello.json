@@ -1,0 +1,66 @@
+{
+  "name": "Stage 1 - hello",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4d1dfbb3-4084-4511-8ddf-9d0c42b6d549",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0f2df5e1-8758-487a-8efc-5b79256c856b",
+              "name": "message",
+              "value": "hello",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "13b0574d-2709-4544-8ca8-d998deeb2834",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "edf76e52-4159-427e-9621-aa3e859ada36",
+  "meta": {
+    "instanceId": "f6cede61261ad56173830d70ae6c59775cfb734e909d77475bde11939d2490b6"
+  },
+  "nodeGroups": [],
+  "id": "aJbVyX0OMjk6uuph",
+  "tags": []
+}
