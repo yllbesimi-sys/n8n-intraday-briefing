@@ -172,3 +172,8 @@ Not before: building by hand is the point.
 ## Progress
 
 - Stage 1: done (workflow built and exported to `workflows/stage-1-hello.json`; repo on GitHub).
+- Stage 2: done (workflow exported to `workflows/stage-2-gaps.json`; output is 11:00, 10:30, 17:30;
+  data from `scripts/make_intraday_data.py`, Code node from `scripts/staffing_gap.js`, tested by
+  `node scripts/staffing_gap.test.js`).
+- Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files node;
+  decide whether to keep it before the README goes public.

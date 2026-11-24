@@ -1,0 +1,181 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "98fbfd70-1453-4fe1-bd1b-0240a7d9106c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "C:\\Users\\besyl\\n8n-intraday\\data\\intraday_2026-11-23.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3ff846ee-d60c-4313-baaf-e96248dd2e0e",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "0763c9da-f218-4340-91cd-b72671f8a1d3",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Find gaps\"\n// Mode: Run Once for All Items. Language: JavaScript.\n// Paste this whole file into the Code node.\n//\n// Input:  one item per interval, straight from Extract from File (CSV).\n// Output: the same 30 items, with numbers instead of text, plus three new fields:\n//           required_agents  how many agents the actual contacts needed\n//           gap              logged-in minus required (negative = short of agents)\n//           cause            \"adherence\", \"volume\", \"adherence and volume\" or \"none\"\n\nconst INTERVAL_SECONDS = 1800;  // one interval = 30 minutes\nconst TARGET_OCCUPANCY = 0.85;  // agents should be busy 85% of the time, not 100%\nconst VOLUME_LIMIT = 1.10;      // more than 110% of forecast counts as a volume problem\n\n// Round to one decimal place, so 3.2352941 shows as 3.2\nfunction round1(n) {\n  return Math.round(n * 10) / 10;\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const row = item.json;\n\n  // CSV values arrive as text (\"145\"). Number() turns them into real numbers (145).\n  const forecast = Number(row.forecast_contacts);\n  const actual = Number(row.actual_contacts);\n  const aht = Number(row.aht_seconds);\n  const scheduled = Number(row.scheduled_agents);\n  const loggedIn = Number(row.logged_in_agents);\n\n  // If a column is missing or not a number, stop with a clear error\n  // instead of quietly calculating nonsense.\n  if ([forecast, actual, aht, scheduled, loggedIn].some(Number.isNaN)) {\n    throw new Error(`Interval ${row.interval_start}: a number column is missing or not a number`);\n  }\n\n  // Agents needed for the contacts that actually came in:\n  // total talk time (contacts x seconds each), divided by the seconds in one interval,\n  // divided by 0.85 because nobody can be busy every single second.\n  const required = actual * aht / INTERVAL_SECONDS / TARGET_OCCUPANCY;\n\n  // How many agents we have compared to how many we need. -3.2 means 3.2 agents short.\n  const gap = loggedIn - required;\n\n  // Why are we short? It can be one reason, both, or neither.\n  const causes = [];\n  if (loggedIn < scheduled) causes.push('adherence');               // people missing\n  if (actual > forecast * VOLUME_LIMIT) causes.push('volume');      // more calls than planned\n\n  results.push({\n    json: {\n      date: row.date,\n      interval_start: row.interval_start,\n      forecast_contacts: forecast,\n      actual_contacts: actual,\n      aht_seconds: aht,\n      scheduled_agents: scheduled,\n      logged_in_agents: loggedIn,\n      required_agents: round1(required),\n      gap: round1(gap),\n      cause: causes.length > 0 ? causes.join(' and ') : 'none',\n    },\n  });\n}\n\n// A Code node must return a list of items, each shaped like { json: { ... } }.\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -80
+      ],
+      "id": "5eb5e438-d614-4059-87d3-a22ba515d3c2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "0352c460-7c42-4a81-8c5f-6593037aa140",
+              "leftValue": "={{ $json.gap }}",
+              "rightValue": -2,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.4,
+      "position": [
+        912,
+        -80
+      ],
+      "id": "32955abc-9a72-411b-86ee-d65f2b9f25f8",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "gap"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        -80
+      ],
+      "id": "33a12b46-47d6-49da-b9fc-f6a241c30d6e",
+      "name": "Sort"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "729291a0-78d4-4ec1-8c21-b680e781d42f",
+  "meta": {
+    "instanceId": "f6cede61261ad56173830d70ae6c59775cfb734e909d77475bde11939d2490b6"
+  },
+  "nodeGroups": [],
+  "id": "URgUPgHgh6mUIXaC",
+  "tags": []
+}
