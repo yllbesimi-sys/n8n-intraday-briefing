@@ -54,7 +54,7 @@ Schedule Trigger (every 30 min, 07:00-21:30)
   -> Code: find gaps (required agents, gap, cause)
   -> Filter (2+ agents short) + Sort (worst first)
   -> If: any flagged?
-       yes -> Aggregate -> Anthropic node (Claude briefing, max ~400 tokens) -> Telegram -> Log run
+       yes -> Aggregate -> Anthropic node (Claude briefing, max 1500 tokens) -> Telegram -> Log run
        no  -> Log run
 Separate Error workflow: Error Trigger -> Telegram alert naming the failed node
 ```
@@ -107,7 +107,8 @@ of every stage with message "Stage N: <what changed>".
 - Learn: credentials, the Anthropic node, prompt design, token limits, why the model only sees the
   flagged rows.
 - Build: Aggregate (flagged rows into one item), then the Anthropic node with the prompt from
-  `prompts/briefing.md`, a small fast model, max tokens around 400.
+  `prompts/briefing.md`, a small fast model (Claude Haiku 5.5), max tokens 1500 (400 was too low:
+  thinking counts toward the limit and used all of it).
 - Prompt rules: at most 120 words, one line per interval with cause and one action, use only the
   numbers given, say "no action needed" if nothing is flagged.
 - Claude Code: draft `prompts/briefing.md`, then tighten it after Yll pastes 2 or 3 real outputs.
@@ -157,7 +158,7 @@ Not before: building by hand is the point.
 - Synthetic data only. Nothing from Teleperformance, its clients or its tools goes into the
   workflow, the repo or a prompt.
 - Secrets stay in n8n credentials. Never in a file, screenshot or commit.
-- Cost stays small: Claude only runs when an interval is flagged, small model, ~400-token cap,
+- Cost stays small: Claude only runs when an interval is flagged, small model, 1500-token cap,
   Console spend limit as the hard stop.
 
 ## Showcasing (Stage 6 and after)
@@ -175,5 +176,8 @@ Not before: building by hand is the point.
 - Stage 2: done (workflow exported to `workflows/stage-2-gaps.json`; output is 11:00, 10:30, 17:30;
   data from `scripts/make_intraday_data.py`, Code node from `scripts/staffing_gap.js`, tested by
   `node scripts/staffing_gap.test.js`).
+- Stage 3: done (workflow exported to `workflows/stage-3-briefing.json`; prompt v3 in
+  `prompts/briefing.md` gave the same correct briefing 3 runs in a row; v1 to v3 fixes are in its
+  change log).
 - Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files node;
   decide whether to keep it before the README goes public.
