@@ -7,11 +7,17 @@ exactly three intervals end up 2 or more agents short:
 and one interval (14:00) is a little short but NOT enough to be flagged.
 
 Run it from the project folder:
-    python scripts/make_intraday_data.py
+    python scripts/make_intraday_data.py                  (the whole day)
+    python scripts/make_intraday_data.py --interval 10:00  (only 07:00 up to 10:00)
+
+--interval pretends it is that time of day: the file only has the intervals that
+have happened so far. Running it again without --interval brings back the full day,
+exactly as before.
 
 It writes: data/intraday_2026-11-23.csv
 """
 
+import argparse
 import csv
 import math
 import random
@@ -56,9 +62,10 @@ def agents_needed(contacts, aht_seconds):
     return contacts * aht_seconds / INTERVAL_SECONDS / TARGET_OCCUPANCY
 
 
-def make_rows():
+def make_rows(last_interval=None):
     # A fixed seed makes the "random" numbers the same on every run,
     # so the CSV never changes unless this script changes.
+    # Stopping early (last_interval) does not change the rows before it.
     rng = random.Random(23)
     rows = []
 
@@ -87,11 +94,27 @@ def make_rows():
             "logged_in_agents": logged_in,
         })
 
+        # Stop after the interval we were asked for: later ones "have not happened yet".
+        if interval == last_interval:
+            break
+
     return rows
 
 
 def main():
-    rows = make_rows()
+    parser = argparse.ArgumentParser(description="Make synthetic intraday data.")
+    parser.add_argument(
+        "--interval",
+        help="last interval to include, as HH:MM (07:00 to 21:30, on the hour or half hour). "
+             "Leave it out for the whole day.",
+    )
+    args = parser.parse_args()
+
+    # Only accept times that exist in the day, e.g. 10:30 but not 10:15 or 23:00.
+    if args.interval is not None and args.interval not in FORECAST:
+        parser.error(f"--interval must be one of 07:00, 07:30, ... 21:30, not {args.interval}")
+
+    rows = make_rows(args.interval)
     OUTPUT_FILE.parent.mkdir(exist_ok=True)
     with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())

@@ -52,10 +52,13 @@ workflows/<file>.json". Add a screenshot of the failing node's input/output if u
 Schedule Trigger (every 30 min, 07:00-21:30)
   -> Read/Write Files from Disk + Extract from File (CSV -> one item per interval)
   -> Code: find gaps (required agents, gap, cause)
-  -> Filter (2+ agents short) + Sort (worst first)
+  -> Filter (2+ agents short, newest interval only; Always Output Data on)
   -> If: any flagged?
-       yes -> Aggregate -> Anthropic node (Claude briefing, max 1500 tokens) -> Telegram -> Log run
+       yes -> Sort (worst first) -> Aggregate -> Anthropic node (Claude briefing, max 1500 tokens)
+              -> Telegram -> Log run
        no  -> Log run
+  (If sits before Sort: on a quiet run the Filter outputs one empty item, and Sort fails on an
+   item without a "gap" field.)
 Separate Error workflow: Error Trigger -> Telegram alert naming the failed node
 ```
 
@@ -119,6 +122,11 @@ of every stage with message "Stage N: <what changed>".
 - Learn: Schedule Trigger, If node branching, Telegram credentials and chat IDs.
 - Build: Schedule Trigger every 30 minutes, 07:00 to 21:30; If node skips Claude and Telegram when
   nothing is flagged; Telegram node sends the briefing.
+- Decision (Yll): each run reports only the newest interval, so a problem is reported once, not
+  every 30 minutes for the rest of the day. Done with a second Filter condition:
+  `{{ $json.interval_start }}` equals `{{ $('Code in JavaScript').last().json.interval_start }}`.
+  With the full-day file the newest interval is 21:30, so a full-day run is quiet; test with
+  `--interval 11:00` (1 interval flagged) and `--interval 10:00` (quiet).
 - Claude Code: add an `--interval` option to `scripts/make_intraday_data.py` to generate data up to
   a given time of day.
 - Done when: the briefing arrives in Telegram on schedule, and a quiet run sends nothing.
@@ -179,5 +187,12 @@ Not before: building by hand is the point.
 - Stage 3: done (workflow exported to `workflows/stage-3-briefing.json`; prompt v3 in
   `prompts/briefing.md` gave the same correct briefing 3 runs in a row; v1 to v3 fixes are in its
   change log).
+- Stage 4: done (workflow exported to `workflows/stage-4-schedule.json`; scheduled run delivered the
+  11:00 briefing at 21:30; quiet run (`--interval 10:00`) sent nothing; newest-only confirmed with
+  `--interval 11:00`). Bugs fixed on the way: Sort crashed on the quiet run's empty item (If moved
+  before Sort); schedule never fired until the workflow was published (saving is not publishing).
 - Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files node;
   decide whether to keep it before the README goes public.
+- Stage 6 to-do: from Stage 4 on, exports contain the Telegram chat ID in the Telegram node.
+  Not a secret like the bot token, but it identifies Yll's account: replace it before publishing.
+  The workflow timezone (`Europe/Belgrade`) is in the export too; keep or change, Yll's call.
