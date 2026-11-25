@@ -162,7 +162,7 @@ agreed exception to "Yll builds every node": Claude Code built that workflow thr
 
 - [x] Anthropic Console: API key named `n8n-local`, low monthly spend limit (e.g. $5). Stored only in
       n8n credentials.
-- [ ] Telegram: create a bot with @BotFather (`/newbot`), save the token in n8n credentials, send the
+- [x] Telegram: create a bot with @BotFather (`/newbot`), save the token in n8n credentials, send the
       bot one message.
 
 ## Guardrails
