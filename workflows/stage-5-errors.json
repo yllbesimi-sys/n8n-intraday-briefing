@@ -1,0 +1,145 @@
+{
+  "name": "Intraday Briefing errors",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "7f705430-9afb-4da9-a8d7-44174b3a6639",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "6252799141",
+        "text": "=Intraday briefing FAILED\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nTime: {{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d7d95564-e934-424a-86ba-b4b1be33c775",
+      "name": "Send a text message",
+      "webhookId": "08e79d90-4369-4eed-8095-5d601618b5f6",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "telegramApi": {
+          "id": "nI1V5Bb9lTkXHWaQ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Make error log line\"   (error workflow)\n// Mode: Run Once for All Items. Language: JavaScript.\n// Paste this whole file into the Code node that comes after the Error Trigger.\n//\n// Writes the same columns as scripts/log_line.js, with status \"error\" and the\n// name of the node that failed. Fields the error workflow cannot know stay empty.\n\nfunction csvField(value) {\n  const text = String(value);\n  return /[\",\\n]/.test(text) ? '\"' + text.replace(/\"/g, '\"\"') + '\"' : text;\n}\n\n// The Error Trigger hands over one item describing the failed run.\nconst execution = $input.first().json.execution;\n\n// The run time to the second, without milliseconds (same as scripts/log_line.js).\nconst runTime = $now.startOf('second').toISO({ suppressMilliseconds: true });\n\nconst fields = [\n  runTime,                                        // run_time\n  'error',                                        // status\n  '',                                             // newest_interval (unknown here)\n  '',                                             // flagged (unknown here)\n  'no',                                           // sent: the run failed, so no briefing\n  '',                                             // input_tokens (unknown here)\n  '',                                             // output_tokens (unknown here)\n  execution.lastNodeExecuted || 'unknown',        // error_node: where it failed\n];\n\nreturn [{ json: { line: fields.map(csvField).join(',') + '\\n' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -240
+      ],
+      "id": "a7dd5277-de41-4e09-a4e9-0bc12955b408",
+      "name": "Make error log line"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "line",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        -240
+      ],
+      "id": "6f21a335-7fe4-4433-9c82-50d1569d2c00",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "C:\\Users\\besyl\\n8n-intraday\\logs\\runs.csv",
+        "options": {
+          "append": true
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        -240
+      ],
+      "id": "f33900d3-d70a-43e4-90cd-362109f63afd",
+      "name": "Read/Write Files from Disk"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Make error log line",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make error log line": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "timezone": "Europe/Belgrade",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "d4f32e9a-0337-4d3e-83ff-482001aac839",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f6cede61261ad56173830d70ae6c59775cfb734e909d77475bde11939d2490b6"
+  },
+  "nodeGroups": [],
+  "id": "AsPwTZjGg1Ok3Z25",
+  "tags": []
+}

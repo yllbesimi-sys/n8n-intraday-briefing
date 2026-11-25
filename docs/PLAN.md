@@ -59,7 +59,10 @@ Schedule Trigger (every 30 min, 07:00-21:30)
        no  -> Log run
   (If sits before Sort: on a quiet run the Filter outputs one empty item, and Sort fails on an
    item without a "gap" field.)
+  Log run = Code (one CSV line) -> Convert to File (text) -> Write File to Disk, append to
+  logs/runs.csv. Anthropic and Telegram retry on fail: 3 tries, 5 seconds apart.
 Separate Error workflow: Error Trigger -> Telegram alert naming the failed node
+                                      -> Code (error line) -> Convert to File -> append to logs/runs.csv
 ```
 
 Quiet runs skip Claude and Telegram, which keeps cost near zero and the chat free of noise.
@@ -191,8 +194,26 @@ Not before: building by hand is the point.
   11:00 briefing at 21:30; quiet run (`--interval 10:00`) sent nothing; newest-only confirmed with
   `--interval 11:00`). Bugs fixed on the way: Sort crashed on the quiet run's empty item (If moved
   before Sort); schedule never fired until the workflow was published (saving is not publishing).
-- Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files node;
+- Stage 5: done (main workflow exported to `workflows/stage-5-reliable.json`, error workflow to
+  `workflows/stage-5-errors.json`; broken-key test: a scheduled run with a fake Anthropic key
+  failed after 3 tries, the Telegram alert named "Message a model", and the error line reached the
+  log; real key restored and a manual run sent the briefing again). Optional approval step not
+  built.
+  - Run log `logs/runs.csv` (git-ignored), one line per run. Columns: run_time, status (ok/error),
+    newest_interval, flagged, sent (yes/no), input_tokens, output_tokens, error_node. Written by
+    `scripts/log_line.js` (main) and `scripts/error_log_line.js` (error workflow), tested by
+    `node scripts/log_line.test.js`; summarised by `python scripts/summarise_log.py` (runs,
+    briefings, errors by node, tokens, cost at Haiku 5.5 prices).
+  - Learned: token counts are only in the Anthropic output with "Simplify Output" off; error
+    workflows only run for production (scheduled) runs, not manual ones; with a fake key the
+    Anthropic Model list cannot load, so pick the model "By ID"; Luxon's `suppressMilliseconds`
+    only drops milliseconds that are 0, so the log uses `$now.startOf('second')`.
+  - Bug fixed: Make log line was first wired from the Anthropic node instead of Telegram. It still
+    logged "sent: yes", only because n8n runs the higher branch on the canvas first; now it hangs
+    off Telegram, so the log is written after the message is sent.
+- Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files nodes;
   decide whether to keep it before the README goes public.
-- Stage 6 to-do: from Stage 4 on, exports contain the Telegram chat ID in the Telegram node.
+- Stage 6 to-do: from Stage 4 on, exports contain the Telegram chat ID in the Telegram nodes (both
+  workflows from Stage 5 on).
   Not a secret like the bot token, but it identifies Yll's account: replace it before publishing.
   The workflow timezone (`Europe/Belgrade`) is in the export too; keep or change, Yll's call.
