@@ -155,7 +155,8 @@ of every stage with message "Stage N: <what changed>".
 
 After Stage 6, optional: connect Claude Code to n8n through the community n8n-mcp server
 (https://github.com/czlonkowski/n8n-mcp) and build a second workflow that way, to compare.
-Not before: building by hand is the point.
+Not before: building by hand is the point. Done as Stage 7, see `docs/stage-7-mcp.md`. It is the one
+agreed exception to "Yll builds every node": Claude Code built that workflow through n8n-mcp.
 
 ## Still to set up (before Stages 3 and 4)
 
@@ -212,3 +213,19 @@ Not before: building by hand is the point.
   `scripts/clean_export.py` (older commits still hold the real values; history not rewritten);
   timezone `Europe/Belgrade` kept; career notes moved to the git-ignored `docs/career-notes.md`;
   commit author email kept.
+- Stage 7 (optional): done (Claude Code connected to n8n through n8n-mcp 2.103.2 and built "Daily
+  run summary (MCP-built)": every day at 22:00, read `logs/runs.csv`, summarise today's runs with
+  `scripts/daily_summary.js` (tested by `node scripts/daily_summary.test.js`), send to Telegram.
+  Exported to `workflows/stage-7-daily-summary.json` and cleaned. First manual run sent the expected
+  summary; Yll published it. Comparison in `docs/stage-7-mcp.md`, short version in the README).
+  - Decisions (Yll): build the end-of-day summary (not a webhook version); the n8n API key lives in
+    the Windows user environment variable `N8N_API_KEY`, never in a file. The MCP server is
+    registered for this project only (local scope, in the Claude Code user config, not the repo),
+    with telemetry off and the delete, credential, variable, data table, folder, template, agent,
+    audit and evaluation tools switched off.
+  - Done by hand: chat ID, first run (n8n-mcp cannot start a Schedule trigger), publishing, export.
+  - Learned: n8n-mcp blocks localhost unless `WEBHOOK_SECURITY_MODE=moderate`; on Windows Claude
+    Code starts `npx` through `cmd /c`; validation passes with placeholder values, so it checks
+    structure, not facts.
+  - To undo: delete the API key in n8n, delete `N8N_API_KEY` in Windows, and run
+    `claude mcp remove n8n-mcp -s local`.

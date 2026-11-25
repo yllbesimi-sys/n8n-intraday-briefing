@@ -1,0 +1,154 @@
+{
+  "name": "Daily run summary (MCP-built)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 22
+            }
+          ]
+        }
+      },
+      "id": "b1c0a001-0000-4000-8000-000000000001",
+      "name": "Every day at 22:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "C:\\path\\to\\n8n-intraday\\logs\\runs.csv",
+        "options": {}
+      },
+      "id": "b1c0a001-0000-4000-8000-000000000002",
+      "name": "Read run log",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "b1c0a001-0000-4000-8000-000000000003",
+      "name": "CSV to items",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "alwaysOutputData": true,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Summarise today\"   (daily summary workflow, Stage 7)\n// Mode: Run Once for All Items. Language: JavaScript.\n// Built into the workflow through n8n-mcp; this file is the versioned copy.\n//\n// Gets one item per line of logs/runs.csv (from Extract from File) and turns\n// today's lines into one Telegram message. Same counts as scripts/summarise_log.py,\n// but for one day only.\n\n// Claude Haiku 5.5 prices in US dollars per million tokens (same as summarise_log.py).\nconst INPUT_PRICE_PER_MILLION = 0.10;\nconst OUTPUT_PRICE_PER_MILLION = 0.50;\n\n// Empty fields (for example token counts on error rows) count as 0.\nconst toInt = (text) => parseInt(text, 10) || 0;\n\n// Today's date in the workflow's timezone, for example 2026-11-25.\nconst today = $now.toFormat('yyyy-MM-dd');\n\n// Every run_time starts with the date of the run, written in the same timezone.\n// An empty log gives one empty item, which this filter drops too.\nconst runs = $input.all()\n  .map((item) => item.json)\n  .filter((run) => String(run.run_time || '').startsWith(today));\n\nif (runs.length === 0) {\n  return [{ json: { text: `Daily run summary ${today}\\nNo runs logged today.`, runs: 0 } }];\n}\n\nconst ok = runs.filter((r) => r.status === 'ok');\nconst errors = runs.filter((r) => r.status === 'error');\nconst sent = ok.filter((r) => r.sent === 'yes');\n// Quiet means nothing was flagged, so Claude and Telegram were skipped on purpose.\nconst quiet = ok.filter((r) => String(r.flagged) === '0');\n// Flagged but not sent: only happens when a test runs part of the main workflow.\nconst flaggedNotSent = ok.filter((r) => String(r.flagged) !== '0' && r.sent === 'no');\n\nconst inputTokens = runs.reduce((sum, r) => sum + toInt(r.input_tokens), 0);\nconst outputTokens = runs.reduce((sum, r) => sum + toInt(r.output_tokens), 0);\nconst cost = (inputTokens * INPUT_PRICE_PER_MILLION\n  + outputTokens * OUTPUT_PRICE_PER_MILLION) / 1000000;\n\nconst lines = [\n  `Daily run summary ${today}`,\n  `Runs: ${runs.length} (${ok.length} ok, ${errors.length} error)`,\n  `Briefings sent: ${sent.length}`,\n  `Quiet runs: ${quiet.length}`,\n];\nif (flaggedNotSent.length > 0) {\n  lines.push(`Flagged, not sent: ${flaggedNotSent.length} (partial test runs)`);\n}\nif (errors.length > 0) {\n  // Count errors per node, for example \"Message a model 1\".\n  const byNode = {};\n  for (const r of errors) byNode[r.error_node] = (byNode[r.error_node] || 0) + 1;\n  lines.push('Errors: ' + Object.entries(byNode).map(([node, n]) => `${node} ${n}`).join(', '));\n}\nlines.push(`Claude: ${inputTokens.toLocaleString('en-US')} tokens in, `\n  + `${outputTokens.toLocaleString('en-US')} out, $${cost.toFixed(4)}`);\n\nreturn [{ json: { text: lines.join('\\n'), runs: runs.length } }];\n"
+      },
+      "id": "b1c0a001-0000-4000-8000-000000000004",
+      "name": "Summarise today",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        0
+      ],
+      "notes": "Why Code: one short node replaces Filter (today only) + several Summarize/If nodes for counts per status, errors per node, cost and the message text. Source: scripts/daily_summary.js"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b1c0a001-0000-4000-8000-000000000005",
+      "name": "Send summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "position": [
+        880,
+        0
+      ],
+      "webhookId": "2fa04c3f-04f9-4df6-90b8-8bd0d9536154",
+      "credentials": {
+        "telegramApi": {
+          "id": "nI1V5Bb9lTkXHWaQ",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every day at 22:00": {
+      "main": [
+        [
+          {
+            "node": "Read run log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read run log": {
+      "main": [
+        [
+          {
+            "node": "CSV to items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSV to items": {
+      "main": [
+        [
+          {
+            "node": "Summarise today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarise today": {
+      "main": [
+        [
+          {
+            "node": "Send summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "Europe/Belgrade",
+    "availableInMCP": true
+  },
+  "versionId": "251c3a86-9046-471f-b3ea-ae1f22f4d185",
+  "meta": {
+    "instanceId": "f6cede61261ad56173830d70ae6c59775cfb734e909d77475bde11939d2490b6"
+  },
+  "nodeGroups": [],
+  "id": "LTqerXbDi6BUCqrA",
+  "tags": []
+}

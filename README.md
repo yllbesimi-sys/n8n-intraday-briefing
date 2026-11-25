@@ -103,6 +103,21 @@ The 0.85 is target occupancy: agents can't be busy every second, so the workflow
 | The error alert never fired in tests | Error workflows only run for scheduled runs, not manual ones | Tested with a scheduled run and a fake API key |
 | The log said "sent" only by luck | The log step was wired after Claude instead of after Telegram | Wired it after Telegram |
 
+## A second workflow, built through MCP
+
+After building everything by hand, I connected Claude Code to my local n8n through the community
+[n8n-mcp](https://github.com/czlonkowski/n8n-mcp) server and had it build a small second workflow:
+a nightly summary of the run log, sent to Telegram (`workflows/stage-7-daily-summary.json`).
+
+- Claude created all 5 nodes in one step, validated them, and the workflow worked on the first run,
+  13 minutes after installing n8n-mcp, setup included.
+- I still did the chat ID, the first run, publishing and the export by hand. The n8n API key stayed
+  in a Windows environment variable, never in a file.
+- It was fast because building by hand had already solved the hard parts: file access, timezone,
+  empty items, retries, publishing. Validation checks structure, not facts.
+
+The full comparison and setup are in [`docs/stage-7-mcp.md`](docs/stage-7-mcp.md).
+
 ## Run it yourself
 
 You need Windows with PowerShell, Node.js 20.19 to 24.x, Python 3, an Anthropic API key (set a
@@ -130,14 +145,18 @@ monthly spend limit) and a Telegram bot from @BotFather.
    interval is short, so a manual run sends a briefing. `--interval 10:00` makes a quiet one.
 8. Publish both workflows so the schedule runs.
 
-Checks: `node scripts/staffing_gap.test.js` and `node scripts/log_line.test.js` test the Code-node
-logic outside n8n. After exporting a workflow, `python scripts/clean_export.py` replaces the chat
-ID and local path with placeholders before it is committed.
+Optional: import `workflows/stage-7-daily-summary.json` for a nightly summary of the run log in
+Telegram (fill in the same two placeholders).
+
+Checks: `node scripts/staffing_gap.test.js`, `node scripts/log_line.test.js` and
+`node scripts/daily_summary.test.js` test the Code-node logic outside n8n. After exporting a
+workflow, `python scripts/clean_export.py` replaces the chat ID and local path with placeholders
+before it is committed.
 
 ## Repo layout
 
 ```
-workflows/   n8n exports, one per build stage (stage-5-* is the finished version)
+workflows/   n8n exports, one per build stage (stage-5-* is the finished version, stage-7 the MCP-built one)
 scripts/     data generator, Code-node JavaScript with tests, log summary, export cleaner
 prompts/     the Claude prompt, versioned with a change log
 data/        the synthetic interval file
@@ -146,10 +165,13 @@ start-n8n.ps1  starts n8n with file access limited to data/ and logs/
 ```
 
 Each build stage has its own export in `workflows/`, so you can follow how the workflow grew:
-hello world (1), finding the gaps (2), adding Claude (3), schedule and Telegram (4), reliability (5).
+hello world (1), finding the gaps (2), adding Claude (3), schedule and Telegram (4), reliability (5),
+and a second workflow built through MCP (7).
 
 ## Built with
 
 n8n 2.x (self-hosted), Claude Haiku 5.5 through the Anthropic API, Telegram Bot API, JavaScript,
-Python. I built and tested every node in the n8n canvas myself, with Claude Code as a pair: it
-explained each n8n concept, wrote the Code-node JavaScript, scripts and docs, and handled Git.
+Python. I built and tested every node of the main and error workflows in the n8n canvas myself, with
+Claude Code as a pair: it explained each n8n concept, wrote the Code-node JavaScript, scripts and
+docs, and handled Git. The Stage 7 summary workflow is the exception: Claude Code built it through
+n8n-mcp, so I could compare the two ways.
