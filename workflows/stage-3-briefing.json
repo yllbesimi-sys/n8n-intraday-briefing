@@ -14,7 +14,7 @@
     },
     {
       "parameters": {
-        "fileSelector": "C:\\Users\\besyl\\n8n-intraday\\data\\intraday_2026-11-23.csv",
+        "fileSelector": "C:\\path\\to\\n8n-intraday\\data\\intraday_2026-11-23.csv",
         "options": {}
       },
       "type": "n8n-nodes-base.readWriteFile",

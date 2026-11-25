@@ -10,8 +10,7 @@ intervals, has Claude write a short briefing with a recommended action, and send
 on a schedule. It runs locally on Yll's personal Windows PC, uses synthetic data only, and ends as
 a public GitHub repo (`n8n-intraday-briefing`) with a README, screenshots and the exported workflow.
 
-Why: AI operations job listings ask for Claude used in real workflows, automation with tools like
-n8n, human oversight and auditability. This project shows all four, on top of 8+ years of WFM work.
+Private notes: `docs/career-notes.md` (git-ignored, only on Yll's PC).
 
 The finished workflow:
 
@@ -35,7 +34,8 @@ workflows/<file>.json". Add a screenshot of the failing node's input/output if u
 
 ## Environment (already set up, keep these facts)
 
-- Windows, PowerShell. Project folder: `C:\Users\besyl\n8n-intraday`.
+- Windows, PowerShell. Project folder: this repo's folder on Yll's PC. Exports in `workflows/` use
+  the placeholder `C:\path\to\n8n-intraday` instead of the real path (see `scripts/clean_export.py`).
 - Node.js 24 (n8n supports Node 20.19 to 24.x only; Node 26 does not work).
 - n8n installed globally with npm. npm 12 blocks install scripts by default, so it was installed with
   `npm install -g n8n --allow-scripts=@parcel/watcher,isolated-vm,sqlite3,agent-browser,oracledb,protobufjs,msgpackr-extract,ssh2,@sentry/node-native-stacktrace,@sentry/node-cpu-profiler,cpu-features,@scarf/scarf`.
@@ -169,17 +169,10 @@ Not before: building by hand is the point.
 - Synthetic data only. Nothing from Teleperformance, its clients or its tools goes into the
   workflow, the repo or a prompt.
 - Secrets stay in n8n credentials. Never in a file, screenshot or commit.
+- Personal values (Telegram chat ID, local path) stay out of committed exports: run
+  `python scripts/clean_export.py` after every export, before committing.
 - Cost stays small: Claude only runs when an interval is flagged, small model, 1500-token cap,
   Console spend limit as the hard stop.
-
-## Showcasing (Stage 6 and after)
-
-- CV bullet draft: "Built an n8n workflow that flags understaffed intervals from intraday data, uses
-  Claude to write a team-lead briefing, and delivers it to Telegram every 30 minutes, with error
-  alerts, retries and a run log."
-- LinkedIn: add as a project next to Hedum and iDerm Tracker, with the GitHub link and a screenshot.
-- Interview story: the WFM problem (intraday gaps found too late), what was automated, design choices
-  (Claude only on flagged rows, human decides, every run logged), what broke and how it was fixed.
 
 ## Progress
 
@@ -211,9 +204,11 @@ Not before: building by hand is the point.
   - Bug fixed: Make log line was first wired from the Anthropic node instead of Telegram. It still
     logged "sent: yes", only because n8n runs the higher branch on the canvas first; now it hangs
     off Telegram, so the log is written after the message is sent.
-- Stage 6 to-do: exports contain the local path `C:\Users\besyl\...` in the Read/Write Files nodes;
-  decide whether to keep it before the README goes public.
-- Stage 6 to-do: from Stage 4 on, exports contain the Telegram chat ID in the Telegram nodes (both
-  workflows from Stage 5 on).
-  Not a secret like the bot token, but it identifies Yll's account: replace it before publishing.
-  The workflow timezone (`Europe/Belgrade`) is in the export too; keep or change, Yll's call.
+- Stage 6: done (`README.md` with what it does, why, diagram, worked calculation, design choices,
+  what broke, how to run; screenshots in `docs/screenshots/`: Telegram briefing, main workflow
+  canvas, error alert, each checked for personal data).
+  Privacy decisions (Yll), made after finding the repo was already public:
+  the Telegram chat ID and the local path are replaced with placeholders in all exports by
+  `scripts/clean_export.py` (older commits still hold the real values; history not rewritten);
+  timezone `Europe/Belgrade` kept; career notes moved to the git-ignored `docs/career-notes.md`;
+  commit author email kept.

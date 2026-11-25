@@ -3,3 +3,6 @@ logs/
 
 # Local secrets file - never commit (credentials live in n8n)
 .env
+
+# Private career notes - stay on this PC, never go to the public repo
+docs/career-notes.md

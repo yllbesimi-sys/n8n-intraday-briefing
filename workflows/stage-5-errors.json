@@ -14,7 +14,7 @@
     },
     {
       "parameters": {
-        "chatId": "6252799141",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
         "text": "=Intraday briefing FAILED\nNode: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nTime: {{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
         "additionalFields": {
           "appendAttribution": false
@@ -69,7 +69,7 @@
     {
       "parameters": {
         "operation": "write",
-        "fileName": "C:\\Users\\besyl\\n8n-intraday\\logs\\runs.csv",
+        "fileName": "C:\\path\\to\\n8n-intraday\\logs\\runs.csv",
         "options": {
           "append": true
         }
